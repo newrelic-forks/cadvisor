@@ -20,9 +20,9 @@ import (
 	"time"
 
 	bigquery "code.google.com/p/google-api-go-client/bigquery/v2"
-	info "github.com/google/cadvisor/info/v1"
-	"github.com/google/cadvisor/storage"
-	"github.com/google/cadvisor/storage/bigquery/client"
+	info "github.com/newrelic-forks/cadvisor/info/v1"
+	"github.com/newrelic-forks/cadvisor/storage"
+	"github.com/newrelic-forks/cadvisor/storage/bigquery/client"
 )
 
 type bigqueryStorage struct {
@@ -70,6 +70,10 @@ const (
 	// Filesystem available space.
 	colFsUsage = "fs_usage"
 )
+
+func (self *bigqueryStorage) AddEvent(event *info.Event) {
+
+}
 
 // TODO(jnagal): Infer schema through reflection. (See bigquery/client/example)
 func (self *bigqueryStorage) GetSchema() *bigquery.TableSchema {

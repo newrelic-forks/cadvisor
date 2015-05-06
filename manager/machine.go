@@ -26,13 +26,13 @@ import (
 
 	dclient "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
-	"github.com/google/cadvisor/container/docker"
-	"github.com/google/cadvisor/fs"
-	info "github.com/google/cadvisor/info/v1"
-	"github.com/google/cadvisor/utils"
-	"github.com/google/cadvisor/utils/sysfs"
-	"github.com/google/cadvisor/utils/sysinfo"
-	version "github.com/google/cadvisor/version"
+	"github.com/newrelic-forks/cadvisor/container/docker"
+	"github.com/newrelic-forks/cadvisor/fs"
+	info "github.com/newrelic-forks/cadvisor/info/v1"
+	"github.com/newrelic-forks/cadvisor/utils"
+	"github.com/newrelic-forks/cadvisor/utils/sysfs"
+	"github.com/newrelic-forks/cadvisor/utils/sysinfo"
+	version "github.com/newrelic-forks/cadvisor/version"
 )
 
 var cpuRegExp = regexp.MustCompile("processor\\t*: +([0-9]+)")

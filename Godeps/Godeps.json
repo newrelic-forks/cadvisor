@@ -1,5 +1,5 @@
 {
-	"ImportPath": "github.com/google/cadvisor",
+	"ImportPath": "github.com/newrelic-forks/cadvisor",
 	"GoVersion": "go1.4.2",
 	"Packages": [
 		"./..."
@@ -68,7 +68,7 @@
 		{
 			"ImportPath": "github.com/docker/libcontainer",
 			"Comment": "v1.4.0-412-g4ea9039",
-			"Rev": "4ea9039ff269fc8675409df7f1a192c94eab2f52"
+			"Rev": "1c435321558c49f769198daaf04158b1ff970ad5"
 		},
 		{
 			"ImportPath": "github.com/fsouza/go-dockerclient",

@@ -17,7 +17,7 @@ package main
 import (
 	"log"
 
-	"github.com/google/cadvisor/utils/cpuload/netlink"
+	"github.com/newrelic-forks/cadvisor/utils/cpuload/netlink"
 )
 
 func main() {

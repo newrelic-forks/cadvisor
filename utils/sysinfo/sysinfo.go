@@ -20,8 +20,8 @@ import (
 	"strconv"
 	"strings"
 
-	info "github.com/google/cadvisor/info/v1"
-	"github.com/google/cadvisor/utils/sysfs"
+	info "github.com/newrelic-forks/cadvisor/info/v1"
+	"github.com/newrelic-forks/cadvisor/utils/sysfs"
 )
 
 var schedulerRegExp = regexp.MustCompile(".*\\[(.*)\\].*")

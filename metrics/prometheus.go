@@ -19,7 +19,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	info "github.com/google/cadvisor/info/v1"
+	info "github.com/newrelic-forks/cadvisor/info/v1"
 	"github.com/prometheus/client_golang/prometheus"
 )
 

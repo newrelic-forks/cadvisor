@@ -18,8 +18,8 @@ import (
 	"flag"
 
 	"github.com/golang/glog"
-	"github.com/google/cadvisor/client"
-	info "github.com/google/cadvisor/info/v1"
+	"github.com/newrelic-forks/cadvisor/client"
+	info "github.com/newrelic-forks/cadvisor/info/v1"
 )
 
 func staticClientExample() {

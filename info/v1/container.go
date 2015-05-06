@@ -249,6 +249,10 @@ type CpuUsage struct {
 	// Units: nanoseconds
 	Total uint64 `json:"total"`
 
+	// Total CPU usage.
+	// Units: percent of total host CPU during period
+	TotalPercent float64 `json:"totalPercent"`
+
 	// Per CPU/core usage of the container.
 	// Unit: nanoseconds.
 	PerCpu []uint64 `json:"per_cpu_usage,omitempty"`
@@ -257,9 +261,17 @@ type CpuUsage struct {
 	// Unit: nanoseconds
 	User uint64 `json:"user"`
 
+	// Time spent in user space
+	// Unit: percent of total host CPU during period
+	UserPercent float64 `json:"userPercent"`
+
 	// Time spent in kernel space.
 	// Unit: nanoseconds
 	System uint64 `json:"system"`
+
+	// Time spent in kernel space.
+	// Uint: percent of total host CPU during period
+	SystemPercent float64 `json:"systemPercent"`
 }
 
 // All CPU usage metrics are cumulative from the creation of the container
@@ -295,6 +307,11 @@ type MemoryStats struct {
 	// Units: Bytes.
 	Usage uint64 `json:"usage"`
 
+	// Current memory usage, this includes all memory regardless of when it was
+	// accessed.
+	// Units: Percent of total CGroup limit
+	UsagePercent float64 `json:"usagePercent"`
+
 	// The amount of working set memory, this includes recently accessed memory,
 	// dirty memory, and kernel memory. Working set is <= "usage".
 	// Units: Bytes.
@@ -311,7 +328,8 @@ type MemoryStatsMemoryData struct {
 
 type NetworkStats struct {
 	// Cumulative count of bytes received.
-	RxBytes uint64 `json:"rx_bytes"`
+	RxBytes uint64  `json:"rx_bytes"`
+	RxBps   float64 `json:"rx_bps"`
 	// Cumulative count of packets received.
 	RxPackets uint64 `json:"rx_packets"`
 	// Cumulative count of receive errors encountered.
@@ -319,7 +337,8 @@ type NetworkStats struct {
 	// Cumulative count of packets dropped while receiving.
 	RxDropped uint64 `json:"rx_dropped"`
 	// Cumulative count of bytes transmitted.
-	TxBytes uint64 `json:"tx_bytes"`
+	TxBytes uint64  `json:"tx_bytes"`
+	TxBps   float64 `json:"tx_bps"`
 	// Cumulative count of packets transmitted.
 	TxPackets uint64 `json:"tx_packets"`
 	// Cumulative count of transmit errors encountered.

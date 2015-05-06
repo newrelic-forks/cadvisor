@@ -16,6 +16,7 @@
 package manager
 
 import (
+	"container/ring"
 	"flag"
 	"fmt"
 	"path"
@@ -26,17 +27,17 @@ import (
 
 	"github.com/docker/libcontainer/cgroups"
 	"github.com/golang/glog"
-	"github.com/google/cadvisor/container"
-	"github.com/google/cadvisor/container/docker"
-	"github.com/google/cadvisor/container/raw"
-	"github.com/google/cadvisor/events"
-	"github.com/google/cadvisor/fs"
-	info "github.com/google/cadvisor/info/v1"
-	"github.com/google/cadvisor/info/v2"
-	"github.com/google/cadvisor/storage/memory"
-	"github.com/google/cadvisor/utils/cpuload"
-	"github.com/google/cadvisor/utils/oomparser"
-	"github.com/google/cadvisor/utils/sysfs"
+	"github.com/newrelic-forks/cadvisor/container"
+	"github.com/newrelic-forks/cadvisor/container/docker"
+	"github.com/newrelic-forks/cadvisor/container/raw"
+	"github.com/newrelic-forks/cadvisor/events"
+	"github.com/newrelic-forks/cadvisor/fs"
+	info "github.com/newrelic-forks/cadvisor/info/v1"
+	"github.com/newrelic-forks/cadvisor/info/v2"
+	"github.com/newrelic-forks/cadvisor/storage/memory"
+	"github.com/newrelic-forks/cadvisor/utils/cpuload"
+	"github.com/newrelic-forks/cadvisor/utils/oomparser"
+	"github.com/newrelic-forks/cadvisor/utils/sysfs"
 )
 
 var globalHousekeepingInterval = flag.Duration("global_housekeeping_interval", 1*time.Minute, "Interval between global housekeepings")
@@ -112,11 +113,12 @@ func New(memoryStorage *memory.InMemoryStorage, sysfs sysfs.SysFs) (Manager, err
 	}
 	newManager := &manager{
 		containers:        make(map[namespacedContainerName]*containerData),
-		quitChannels:      make([]chan error, 0, 2),
+		quitChannels:      make([]chan error, 0, 3),
 		memoryStorage:     memoryStorage,
 		fsInfo:            fsInfo,
 		cadvisorContainer: selfContainer,
 		startupTime:       time.Now(),
+		nameMap:           ring.New(100),
 	}
 
 	machineInfo, err := getMachineInfo(sysfs, fsInfo)
@@ -159,6 +161,11 @@ type namespacedContainerName struct {
 	Name string
 }
 
+type nameMapEntry struct {
+	Name  string
+	Alias string
+}
+
 type manager struct {
 	containers             map[namespacedContainerName]*containerData
 	containersLock         sync.RWMutex
@@ -172,6 +179,7 @@ type manager struct {
 	loadReader             cpuload.CpuLoadReader
 	eventHandler           events.EventManager
 	startupTime            time.Time
+	nameMap                *ring.Ring
 }
 
 // Start the container manager.
@@ -229,7 +237,42 @@ func (self *manager) Start() error {
 	self.quitChannels = append(self.quitChannels, quitGlobalHousekeeping)
 	go self.globalHousekeeping(quitGlobalHousekeeping)
 
+	quitEventsToStorage := make(chan error)
+	self.quitChannels = append(self.quitChannels, quitEventsToStorage)
+	go self.eventsToStorage(quitEventsToStorage)
+
 	return nil
+}
+
+func (self *manager) eventsToStorage(quitChan chan error) {
+	req := events.NewRequest()
+	req.EventType = map[info.EventType]bool{
+		info.EventOom:               false,
+		info.EventOomKill:           true,
+		info.EventContainerCreation: true,
+		info.EventContainerDeletion: true,
+	}
+	req.MaxEventsReturned = 0
+	eventChanStruct, err := self.WatchForEvents(req)
+	if err != nil {
+		glog.Warningf("Failed to subscribe to events: %v", err)
+		return
+	}
+	eventChan := eventChanStruct.GetChannel()
+	if err != nil {
+		glog.Warningf("Failed to compile regex: %v", err)
+		return
+	}
+	for {
+		select {
+		case event := <-eventChan:
+			self.memoryStorage.AddEvent(event)
+		case <-quitChan:
+			quitChan <- nil
+			glog.Infof("Exiting eventsToStorage")
+			return
+		}
+	}
 }
 
 func (self *manager) Stop() error {
@@ -620,6 +663,7 @@ func (m *manager) GetVersionInfo() (*info.VersionInfo, error) {
 
 // Create a container.
 func (m *manager) createContainer(containerName string) error {
+
 	handler, err := container.NewContainerHandler(containerName)
 	if err != nil {
 		return err
@@ -660,21 +704,32 @@ func (m *manager) createContainer(containerName string) error {
 		return nil
 	}
 	glog.V(2).Infof("Added container: %q (aliases: %v, namespace: %q)", containerName, cont.info.Aliases, cont.info.Namespace)
-
-	contSpec, err := cont.handler.GetSpec()
+	regex, err := regexp.Compile("docker-")
 	if err != nil {
-		return err
-	}
 
-	if contSpec.CreationTime.After(m.startupTime) {
-		contRef, err := cont.handler.ContainerReference()
+	}
+	if regex.MatchString(containerName) {
+		contSpec, err := cont.handler.GetSpec()
 		if err != nil {
 			return err
 		}
 
+		contRef, err := cont.handler.ContainerReference()
+		if err != nil {
+			return err
+		}
+		alias := containerName
+		if len(contRef.Aliases) > 0 {
+			alias = contRef.Aliases[0]
+			m.nameMap.Value = &nameMapEntry{
+				Name:  containerName,
+				Alias: alias,
+			}
+			m.nameMap = m.nameMap.Next()
+		}
 		newEvent := &info.Event{
-			ContainerName: contRef.Name,
-			Timestamp:     contSpec.CreationTime,
+			ContainerName: alias,
+			Timestamp:     time.Now(),
 			EventType:     info.EventContainerCreation,
 			EventData: info.EventData{
 				Created: &info.CreatedEventData{
@@ -682,6 +737,7 @@ func (m *manager) createContainer(containerName string) error {
 				},
 			},
 		}
+
 		err = m.eventHandler.AddEvent(newEvent)
 		if err != nil {
 			return err
@@ -723,20 +779,30 @@ func (m *manager) destroyContainer(containerName string) error {
 	}
 	glog.V(2).Infof("Destroyed container: %q (aliases: %v, namespace: %q)", containerName, cont.info.Aliases, cont.info.Namespace)
 
-	contRef, err := cont.handler.ContainerReference()
-	if err != nil {
-		return err
+	regex, err := regexp.Compile("docker-")
+
+	if regex.MatchString(containerName) {
+		contRef, err := cont.handler.ContainerReference()
+		if err != nil {
+			return err
+		}
+
+		alias := containerName
+		if len(contRef.Aliases) > 0 {
+			alias = contRef.Aliases[0]
+		}
+
+		newEvent := &info.Event{
+			ContainerName: alias,
+			Timestamp:     time.Now(),
+			EventType:     info.EventContainerDeletion,
+		}
+		err = m.eventHandler.AddEvent(newEvent)
+		if err != nil {
+			return err
+		}
 	}
 
-	newEvent := &info.Event{
-		ContainerName: contRef.Name,
-		Timestamp:     time.Now(),
-		EventType:     info.EventContainerDeletion,
-	}
-	err = m.eventHandler.AddEvent(newEvent)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -891,20 +957,37 @@ func (self *manager) watchForNewOoms() error {
 			}
 			glog.V(3).Infof("Created an OOM event in container %q at %v", oomInstance.ContainerName, oomInstance.TimeOfDeath)
 
-			newEvent = &info.Event{
-				ContainerName: oomInstance.VictimContainerName,
-				Timestamp:     oomInstance.TimeOfDeath,
-				EventType:     info.EventOomKill,
-				EventData: info.EventData{
-					OomKill: &info.OomKillEventData{
-						Pid:         oomInstance.Pid,
-						ProcessName: oomInstance.ProcessName,
-					},
-				},
-			}
-			err = self.eventHandler.AddEvent(newEvent)
+			regex, err := regexp.Compile("docker-")
 			if err != nil {
-				glog.Errorf("failed to add OOM kill event for %q: %v", oomInstance.ContainerName, err)
+				continue
+			}
+
+			if regex.MatchString(oomInstance.VictimContainerName) {
+				head := self.nameMap.Prev()
+				for i := 1; i < head.Len(); i++ {
+					if head.Value == nil {
+						break
+					}
+					if head.Value.(*nameMapEntry).Name == oomInstance.VictimContainerName {
+						alias := head.Value.(*nameMapEntry).Alias
+						newEvent = &info.Event{
+							ContainerName: alias,
+							Timestamp:     oomInstance.TimeOfDeath,
+							EventType:     info.EventOomKill,
+							EventData: info.EventData{
+								OomKill: &info.OomKillEventData{
+									Pid:         oomInstance.Pid,
+									ProcessName: oomInstance.ProcessName,
+								},
+							},
+						}
+						err = self.eventHandler.AddEvent(newEvent)
+						if err != nil {
+							glog.Errorf("failed to add OOM kill event for %q: %v", oomInstance.ContainerName, err)
+						}
+						break
+					}
+				}
 			}
 		}
 	}()

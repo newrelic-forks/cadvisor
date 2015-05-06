@@ -17,7 +17,7 @@ package healthz
 import (
 	"net/http"
 
-	httpMux "github.com/google/cadvisor/http/mux"
+	httpMux "github.com/newrelic-forks/cadvisor/http/mux"
 )
 
 func handleHealthz(w http.ResponseWriter, r *http.Request) {

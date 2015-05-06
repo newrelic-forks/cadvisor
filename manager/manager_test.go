@@ -22,12 +22,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/cadvisor/container"
-	"github.com/google/cadvisor/container/docker"
-	info "github.com/google/cadvisor/info/v1"
-	itest "github.com/google/cadvisor/info/v1/test"
-	"github.com/google/cadvisor/storage/memory"
-	"github.com/google/cadvisor/utils/sysfs/fakesysfs"
+	"github.com/newrelic-forks/cadvisor/container"
+	"github.com/newrelic-forks/cadvisor/container/docker"
+	info "github.com/newrelic-forks/cadvisor/info/v1"
+	itest "github.com/newrelic-forks/cadvisor/info/v1/test"
+	"github.com/newrelic-forks/cadvisor/storage/memory"
+	"github.com/newrelic-forks/cadvisor/utils/sysfs/fakesysfs"
 )
 
 // TODO(vmarmol): Refactor these tests.

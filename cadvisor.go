@@ -25,10 +25,10 @@ import (
 	"syscall"
 
 	"github.com/golang/glog"
-	cadvisorHttp "github.com/google/cadvisor/http"
-	"github.com/google/cadvisor/manager"
-	"github.com/google/cadvisor/utils/sysfs"
-	"github.com/google/cadvisor/version"
+	cadvisorHttp "github.com/newrelic-forks/cadvisor/http"
+	"github.com/newrelic-forks/cadvisor/manager"
+	"github.com/newrelic-forks/cadvisor/utils/sysfs"
+	"github.com/newrelic-forks/cadvisor/version"
 )
 
 var argIp = flag.String("listen_ip", "", "IP to listen on, defaults to all IPs")

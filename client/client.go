@@ -26,7 +26,7 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
-	info "github.com/google/cadvisor/info/v1"
+	info "github.com/newrelic-forks/cadvisor/info/v1"
 )
 
 // Client represents the base URL for a cAdvisor client.

@@ -23,8 +23,8 @@ import (
 	"strings"
 	"testing"
 
-	info "github.com/google/cadvisor/info/v1"
-	infoV2 "github.com/google/cadvisor/info/v2"
+	info "github.com/newrelic-forks/cadvisor/info/v1"
+	infoV2 "github.com/newrelic-forks/cadvisor/info/v2"
 	"github.com/kr/pretty"
 )
 

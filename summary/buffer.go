@@ -15,7 +15,7 @@
 package summary
 
 import (
-	info "github.com/google/cadvisor/info/v2"
+	info "github.com/newrelic-forks/cadvisor/info/v2"
 )
 
 // Manages a buffer of usage samples.

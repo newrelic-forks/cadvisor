@@ -16,11 +16,12 @@ package influxdb
 
 import (
 	"fmt"
+	"regexp"
 	"sync"
 	"time"
 
-	info "github.com/google/cadvisor/info/v1"
 	influxdb "github.com/influxdb/influxdb/client"
+	info "github.com/newrelic-forks/cadvisor/info/v1"
 )
 
 type influxdbStorage struct {
@@ -35,12 +36,21 @@ type influxdbStorage struct {
 }
 
 const (
-	colTimestamp          string = "time"
-	colMachineName        string = "machine"
-	colContainerName      string = "container_name"
-	colCpuCumulativeUsage string = "cpu_cumulative_usage"
+	colTimestamp                 string = "time"
+	colMachineName               string = "machine"
+	colContainerName             string = "container_name"
+	colCpuCumulativeUsage        string = "cpu_cumulative_usage"
+	colCpuCumulativeUsagePercent string = "cpu_cumulative_usage_percent"
+	colCpuSystemUsagePercent     string = "cpu_system_usage_percent"
+	colCpuUserUsagePercent       string = "cpu_user_usage_percent"
+	colTxBps                     string = "tx_bps"
+	colRxBps                     string = "rx_bps"
+
+	colGenericName string = "generic_name"
+
 	// Memory Usage
-	colMemoryUsage string = "memory_usage"
+	colMemoryUsage        string = "memory_usage"
+	colMemoryUsagePercent string = "memory_usage_percent"
 	// Working set size
 	colMemoryWorkingSet string = "memory_working_set"
 	// Cumulative count of bytes received.
@@ -115,9 +125,32 @@ func (self *influxdbStorage) containerStatsToValues(
 	columns = append(columns, colCpuCumulativeUsage)
 	values = append(values, stats.Cpu.Usage.Total)
 
+	if len(ref.Aliases) > 0 {
+		re, _ := regexp.Compile("-[a-zA-Z0-9]{14}$")
+		genericName := re.ReplaceAllString(ref.Aliases[0], "")
+		columns = append(columns, colGenericName)
+		values = append(values, genericName)
+	}
+
+	// Cumulative Cpu Usage Percent
+	columns = append(columns, colCpuCumulativeUsagePercent)
+	values = append(values, stats.Cpu.Usage.TotalPercent)
+
+	// Cumulative System Cpu Usage
+	columns = append(columns, colCpuSystemUsagePercent)
+	values = append(values, stats.Cpu.Usage.SystemPercent)
+
+	// Cumulative User Cpu Usage
+	columns = append(columns, colCpuUserUsagePercent)
+	values = append(values, stats.Cpu.Usage.UserPercent)
+
 	// Memory Usage
 	columns = append(columns, colMemoryUsage)
 	values = append(values, stats.Memory.Usage)
+
+	// Memory Usage Percent
+	columns = append(columns, colMemoryUsagePercent)
+	values = append(values, stats.Memory.UsagePercent)
 
 	// Working set size
 	columns = append(columns, colMemoryWorkingSet)
@@ -127,11 +160,17 @@ func (self *influxdbStorage) containerStatsToValues(
 	columns = append(columns, colRxBytes)
 	values = append(values, stats.Network.RxBytes)
 
+	columns = append(columns, colRxBps)
+	values = append(values, stats.Network.RxBps)
+
 	columns = append(columns, colRxErrors)
 	values = append(values, stats.Network.RxErrors)
 
 	columns = append(columns, colTxBytes)
 	values = append(values, stats.Network.TxBytes)
+
+	columns = append(columns, colTxBps)
+	values = append(values, stats.Network.TxBps)
 
 	columns = append(columns, colTxErrors)
 	values = append(values, stats.Network.TxErrors)
@@ -253,6 +292,43 @@ func (self *influxdbStorage) OverrideReadyToFlush(readyToFlush func() bool) {
 
 func (self *influxdbStorage) defaultReadyToFlush() bool {
 	return time.Since(self.lastWrite) >= self.bufferDuration
+}
+
+func (self *influxdbStorage) AddEvent(event *info.Event) {
+	self.lock.Lock()
+	defer self.lock.Unlock()
+	var eventInfo string
+	switch event.EventType {
+	case info.EventOom:
+		eventInfo = fmt.Sprintf("Process %s in container %s killed by OOM Killer", event.EventData.OomKill.ProcessName, event.ContainerName)
+	case info.EventOomKill:
+		eventInfo = fmt.Sprintf("Process %d (%s) in container %s killed by OOM Killer", event.EventData.OomKill.Pid, event.EventData.OomKill.ProcessName, event.ContainerName)
+	case info.EventContainerCreation:
+		eventInfo = fmt.Sprintf("Created container %s with cpu shares %d and memory %d",
+			event.ContainerName,
+			event.EventData.Created.Spec.Cpu.Limit,
+			event.EventData.Created.Spec.Memory.Limit,
+		)
+	case info.EventContainerDeletion:
+		eventInfo = fmt.Sprintf("Deleted container %s", event.ContainerName)
+	}
+	columns := []string{colTimestamp, "machine", "generic_name", "event_type", "event_info"}
+	var points []interface{}
+	points = append(points, event.Timestamp.UnixNano()/1e3)
+	points = append(points, self.machineName)
+	points = append(points, event.ContainerName)
+	points = append(points, string(event.EventType))
+	points = append(points, eventInfo)
+
+	series := self.newSeries(columns, points)
+	series.Name = "events"
+
+	err := self.client.WriteSeriesWithTimePrecision([]*influxdb.Series{series}, influxdb.Microsecond)
+	if err != nil {
+		fmt.Errorf("failed to write events to influxDb: %s", err)
+		return
+	}
+
 }
 
 func (self *influxdbStorage) AddStats(ref info.ContainerReference, stats *info.ContainerStats) error {

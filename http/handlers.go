@@ -20,14 +20,14 @@ import (
 
 	auth "github.com/abbot/go-http-auth"
 	"github.com/golang/glog"
-	"github.com/google/cadvisor/api"
-	"github.com/google/cadvisor/healthz"
-	httpMux "github.com/google/cadvisor/http/mux"
-	"github.com/google/cadvisor/manager"
-	"github.com/google/cadvisor/metrics"
-	"github.com/google/cadvisor/pages"
-	"github.com/google/cadvisor/pages/static"
-	"github.com/google/cadvisor/validate"
+	"github.com/newrelic-forks/cadvisor/api"
+	"github.com/newrelic-forks/cadvisor/healthz"
+	httpMux "github.com/newrelic-forks/cadvisor/http/mux"
+	"github.com/newrelic-forks/cadvisor/manager"
+	"github.com/newrelic-forks/cadvisor/metrics"
+	"github.com/newrelic-forks/cadvisor/pages"
+	"github.com/newrelic-forks/cadvisor/pages/static"
+	"github.com/newrelic-forks/cadvisor/validate"
 	"github.com/prometheus/client_golang/prometheus"
 )
 

@@ -21,10 +21,10 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/google/cadvisor/storage"
-	"github.com/google/cadvisor/storage/bigquery"
-	"github.com/google/cadvisor/storage/influxdb"
-	"github.com/google/cadvisor/storage/memory"
+	"github.com/newrelic-forks/cadvisor/storage"
+	"github.com/newrelic-forks/cadvisor/storage/bigquery"
+	"github.com/newrelic-forks/cadvisor/storage/influxdb"
+	"github.com/newrelic-forks/cadvisor/storage/memory"
 )
 
 var argDbUsername = flag.String("storage_driver_user", "root", "database username")

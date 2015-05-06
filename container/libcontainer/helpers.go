@@ -21,8 +21,8 @@ import (
 
 	"github.com/docker/libcontainer"
 	"github.com/docker/libcontainer/cgroups"
-	info "github.com/google/cadvisor/info/v1"
-	"github.com/google/cadvisor/utils/sysinfo"
+	info "github.com/newrelic-forks/cadvisor/info/v1"
+	"github.com/newrelic-forks/cadvisor/utils/sysinfo"
 )
 
 type CgroupSubsystems struct {
