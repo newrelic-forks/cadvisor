@@ -20,8 +20,8 @@ import (
 	"testing"
 	"time"
 
-	info "github.com/google/cadvisor/info/v1"
-	"github.com/google/cadvisor/storage"
+	info "github.com/newrelic-forks/cadvisor/info/v1"
+	"github.com/newrelic-forks/cadvisor/storage"
 )
 
 type TestStorageDriver interface {

@@ -19,8 +19,8 @@ import (
 	"testing"
 	"time"
 
-	info "github.com/google/cadvisor/info/v1"
-	"github.com/google/cadvisor/integration/framework"
+	info "github.com/newrelic-forks/cadvisor/info/v1"
+	"github.com/newrelic-forks/cadvisor/integration/framework"
 	"github.com/stretchr/testify/require"
 )
 

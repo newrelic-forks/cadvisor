@@ -21,9 +21,9 @@ import (
 	"strconv"
 
 	"github.com/golang/glog"
-	info "github.com/google/cadvisor/info/v1"
-	"github.com/google/cadvisor/info/v2"
-	"github.com/google/cadvisor/manager"
+	info "github.com/newrelic-forks/cadvisor/info/v1"
+	"github.com/newrelic-forks/cadvisor/info/v2"
+	"github.com/newrelic-forks/cadvisor/manager"
 )
 
 const (

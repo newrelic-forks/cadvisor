@@ -29,10 +29,10 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/google/cadvisor/events"
-	httpMux "github.com/google/cadvisor/http/mux"
-	info "github.com/google/cadvisor/info/v1"
-	"github.com/google/cadvisor/manager"
+	"github.com/newrelic-forks/cadvisor/events"
+	httpMux "github.com/newrelic-forks/cadvisor/http/mux"
+	info "github.com/newrelic-forks/cadvisor/info/v1"
+	"github.com/newrelic-forks/cadvisor/manager"
 )
 
 const (

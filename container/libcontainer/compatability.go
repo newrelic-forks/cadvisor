@@ -21,7 +21,7 @@ import (
 
 	"github.com/docker/libcontainer"
 	"github.com/docker/libcontainer/configs"
-	"github.com/google/cadvisor/utils"
+	"github.com/newrelic-forks/cadvisor/utils"
 )
 
 // State represents a running container's state

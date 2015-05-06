@@ -14,10 +14,11 @@
 
 package storage
 
-import info "github.com/google/cadvisor/info/v1"
+import info "github.com/newrelic-forks/cadvisor/info/v1"
 
 type StorageDriver interface {
 	AddStats(ref info.ContainerReference, stats *info.ContainerStats) error
+	AddEvent(event *info.Event)
 
 	// Read most recent stats. numStats indicates max number of stats
 	// returned. The returned stats must be consecutive observed stats. If

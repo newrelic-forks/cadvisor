@@ -16,13 +16,14 @@ package memory
 
 import (
 	"fmt"
+	"regexp"
 	"sync"
 	"time"
 
 	"github.com/golang/glog"
-	info "github.com/google/cadvisor/info/v1"
-	"github.com/google/cadvisor/storage"
-	"github.com/google/cadvisor/utils"
+	info "github.com/newrelic-forks/cadvisor/info/v1"
+	"github.com/newrelic-forks/cadvisor/storage"
+	"github.com/newrelic-forks/cadvisor/utils"
 )
 
 // TODO(vmarmol): See about refactoring this class, we have an unecessary redirection of containerStorage and InMemoryStorage.
@@ -69,7 +70,21 @@ type InMemoryStorage struct {
 	backend             storage.StorageDriver
 }
 
+func (self *InMemoryStorage) AddEvent(event *info.Event) {
+	if self.backend != nil {
+		self.backend.AddEvent(event)
+	}
+}
+
 func (self *InMemoryStorage) AddStats(ref info.ContainerReference, stats *info.ContainerStats) error {
+	var docker bool = false
+	regex, err := regexp.Compile("docker-")
+	if err != nil {
+		return err
+	}
+	if regex.MatchString(ref.Name) {
+		docker = true
+	}
 	var cstore *containerStorage
 	var ok bool
 
@@ -82,7 +97,7 @@ func (self *InMemoryStorage) AddStats(ref info.ContainerReference, stats *info.C
 		}
 	}()
 
-	if self.backend != nil {
+	if self.backend != nil && docker {
 		// TODO(monnand): To deal with long delay write operations, we
 		// may want to start a pool of goroutines to do write
 		// operations.

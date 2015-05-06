@@ -24,12 +24,12 @@ import (
 
 	"github.com/docker/docker/pkg/units"
 	"github.com/golang/glog"
-	"github.com/google/cadvisor/container"
-	info "github.com/google/cadvisor/info/v1"
-	"github.com/google/cadvisor/info/v2"
-	"github.com/google/cadvisor/storage/memory"
-	"github.com/google/cadvisor/summary"
-	"github.com/google/cadvisor/utils/cpuload"
+	"github.com/newrelic-forks/cadvisor/container"
+	info "github.com/newrelic-forks/cadvisor/info/v1"
+	"github.com/newrelic-forks/cadvisor/info/v2"
+	"github.com/newrelic-forks/cadvisor/storage/memory"
+	"github.com/newrelic-forks/cadvisor/summary"
+	"github.com/newrelic-forks/cadvisor/utils/cpuload"
 )
 
 // Housekeeping interval.
@@ -55,8 +55,10 @@ type containerData struct {
 	summaryReader        *summary.StatsSummary
 	loadAvg              float64 // smoothed load average seen so far.
 	housekeepingInterval time.Duration
+	lastStatsTime        time.Time
 	lastUpdatedTime      time.Time
 	lastErrorTime        time.Time
+	lastStats            *info.ContainerStats
 
 	// Whether to log the usage of this container when it is updated.
 	logUsage bool
@@ -73,6 +75,7 @@ func (c *containerData) Start() error {
 func (c *containerData) Stop() error {
 	c.stop <- true
 	return nil
+
 }
 
 func (c *containerData) allowErrorLogging() bool {
@@ -271,6 +274,39 @@ func (c *containerData) updateLoad(newLoad uint64) {
 }
 
 func (c *containerData) updateStats() error {
+
+	// handler              container.ContainerHandler
+	// info                 containerInfo
+	// memoryStorage        *memory.InMemoryStorage
+	// lock                 sync.Mutex
+	// loadReader           cpuload.CpuLoadReader
+	// summaryReader        *summary.StatsSummary
+	// loadAvg              float64 // smoothed load average seen so far.
+	// housekeepingInterval time.Duration
+	// lastUpdatedTime      time.Time
+	// lastErrorTime        time.Time
+
+	// // Whether to log the usage of this container when it is updated.
+	// logUsage bool
+
+	// // Tells the container to stop.
+	// stop chan bool
+
+	// type ContainerStats struct {
+	// 	// The time of this stat point.
+	// 	Timestamp time.Time    `json:"timestamp"`
+	// 	Cpu       CpuStats     `json:"cpu,omitempty"`
+	// 	DiskIo    DiskIoStats  `json:"diskio,omitempty"`
+	// 	Memory    MemoryStats  `json:"memory,omitempty"`
+	// 	Network   NetworkStats `json:"network,omitempty"`
+
+	// 	// Filesystem statistics
+	// 	Filesystem []FsStats `json:"filesystem,omitempty"`
+
+	// 	// Task load stats
+	// 	TaskStats LoadStats `json:"task_stats,omitempty"`
+	// }
+
 	stats, statsErr := c.handler.GetStats()
 	if statsErr != nil {
 		// Ignore errors if the container is dead.
@@ -284,6 +320,9 @@ func (c *containerData) updateStats() error {
 	if stats == nil {
 		return statsErr
 	}
+
+	c.populatePercentStats(stats)
+
 	if c.loadReader != nil {
 		// TODO(vmarmol): Cache this path.
 		path, err := c.handler.GetCgroupPath("cpu")
@@ -317,6 +356,7 @@ func (c *containerData) updateStats() error {
 	if err != nil {
 		return err
 	}
+	c.lastStats = stats
 	return statsErr
 }
 
@@ -335,4 +375,57 @@ func (c *containerData) updateSubcontainers() error {
 	defer c.lock.Unlock()
 	c.info.Subcontainers = subcontainers
 	return nil
+}
+
+func (c *containerData) populatePercentStats(stats *info.ContainerStats) {
+	lastStat := c.lastStats
+	if lastStat == nil {
+		return
+	}
+	if lastStat.Cpu.Usage.Total > stats.Cpu.Usage.Total {
+		glog.Warningf("Container stats rolled over, container likely restarted")
+		return
+	}
+
+	deltaTime := stats.Timestamp.Sub(lastStat.Timestamp).Seconds()
+	if deltaTime <= 0 {
+		glog.Warningf("deltaTime has bad value:", deltaTime)
+		return
+	}
+	deltaCpuTotal := float64(stats.Cpu.Usage.Total-lastStat.Cpu.Usage.Total) / 1e9
+	deltaCpuSystem := float64(stats.Cpu.Usage.System-lastStat.Cpu.Usage.System) / 1e9
+	deltaCpuUser := float64(stats.Cpu.Usage.User-lastStat.Cpu.Usage.User) / 1e9
+	deltaRxBits := float64(8) * (float64(stats.Network.RxBytes - lastStat.Network.RxBytes))
+	deltaTxBits := float64(8) * (float64(stats.Network.TxBytes - lastStat.Network.TxBytes))
+
+	spec, err := c.handler.GetSpec()
+	if err != nil {
+		glog.Warningf("Error getting container spec: %v", err)
+		return
+	}
+	memLimit := spec.Memory.Limit
+
+	stats.Cpu.Usage.TotalPercent = float64(100) * (float64(deltaCpuTotal / deltaTime))
+	stats.Cpu.Usage.SystemPercent = float64(100) * (float64(deltaCpuSystem / deltaTime))
+	stats.Cpu.Usage.UserPercent = float64(100) * (float64(deltaCpuUser / deltaTime))
+	stats.Network.TxBps = deltaTxBits / deltaTime
+	stats.Network.RxBps = deltaRxBits / deltaTime
+
+	if memLimit > 0 {
+		stats.Memory.UsagePercent = float64(100) * (float64(stats.Memory.Usage) / float64(memLimit))
+	}
+}
+
+func round(val float64, roundOn float64, places int) (newVal float64) {
+	var round float64
+	pow := math.Pow(10, float64(places))
+	digit := pow * val
+	_, div := math.Modf(digit)
+	if div >= roundOn {
+		round = math.Ceil(digit)
+	} else {
+		round = math.Floor(digit)
+	}
+	newVal = round / pow
+	return
 }

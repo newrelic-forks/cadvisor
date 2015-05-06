@@ -22,9 +22,9 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/google/cadvisor/container/docker"
-	info "github.com/google/cadvisor/info/v1"
-	"github.com/google/cadvisor/manager"
+	"github.com/newrelic-forks/cadvisor/container/docker"
+	info "github.com/newrelic-forks/cadvisor/info/v1"
+	"github.com/newrelic-forks/cadvisor/manager"
 )
 
 const DockerPage = "/docker/"

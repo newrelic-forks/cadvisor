@@ -23,8 +23,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/cadvisor/client"
-	"github.com/google/cadvisor/integration/common"
+	"github.com/newrelic-forks/cadvisor/client"
+	"github.com/newrelic-forks/cadvisor/integration/common"
 )
 
 var host = flag.String("host", "localhost", "Address of the host being tested")

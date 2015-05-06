@@ -20,8 +20,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/google/cadvisor/events"
-	info "github.com/google/cadvisor/info/v1"
+	"github.com/newrelic-forks/cadvisor/events"
+	info "github.com/newrelic-forks/cadvisor/info/v1"
 	"github.com/stretchr/testify/assert"
 )
 

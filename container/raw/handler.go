@@ -29,11 +29,11 @@ import (
 	cgroup_fs "github.com/docker/libcontainer/cgroups/fs"
 	"github.com/docker/libcontainer/configs"
 	"github.com/golang/glog"
-	"github.com/google/cadvisor/container"
-	"github.com/google/cadvisor/container/libcontainer"
-	"github.com/google/cadvisor/fs"
-	info "github.com/google/cadvisor/info/v1"
-	"github.com/google/cadvisor/utils"
+	"github.com/newrelic-forks/cadvisor/container"
+	"github.com/newrelic-forks/cadvisor/container/libcontainer"
+	"github.com/newrelic-forks/cadvisor/fs"
+	info "github.com/newrelic-forks/cadvisor/info/v1"
+	"github.com/newrelic-forks/cadvisor/utils"
 )
 
 type rawContainerHandler struct {

@@ -17,7 +17,7 @@ package api
 import (
 	"testing"
 
-	"github.com/google/cadvisor/integration/framework"
+	"github.com/newrelic-forks/cadvisor/integration/framework"
 )
 
 func TestMachineInformationIsReturned(t *testing.T) {
